@@ -19,9 +19,9 @@ TITLE = "Angry birds"
 GRAVITY = -900
 
 
-class App(arcade.Window):
+class App(arcade.View):
     def __init__(self):
-        super().__init__(WIDTH, HEIGHT, TITLE)
+        super().__init__()
         self.background = arcade.load_texture("assets/img/background3.png")
         # crear espacio de pymunk
         self.space = pymunk.Space()
@@ -75,7 +75,7 @@ class App(arcade.Window):
     def on_update(self, delta_time: float):
         self.space.step(1 / 60.0)  # actualiza la simulacion de las fisicas
         self.update_collisions()
-        self.sprites.update()
+        self.sprites.update(delta_time)
 
     def update_collisions(self):
         pass
@@ -102,8 +102,9 @@ class App(arcade.Window):
             self.birds.append(bird)
 
     def on_draw(self):
-        arcade.start_render()
-        arcade.draw_lrwh_rectangle_textured(0, 0, WIDTH, HEIGHT, self.background)
+        self.clear()
+        # arcade.draw_lrwh_rectangle_textured(0, 0, WIDTH, HEIGHT, self.background)
+        arcade.draw_texture_rect(self.background, arcade.LRBT(0, WIDTH, 0, HEIGHT))
         self.sprites.draw()
         if self.draw_line:
             arcade.draw_line(self.start_point.x, self.start_point.y, self.end_point.x, self.end_point.y,
@@ -111,7 +112,9 @@ class App(arcade.Window):
 
 
 def main():
-    app = App()
+    window = arcade.Window(WIDTH, HEIGHT, TITLE)
+    game = App()
+    window.show_view(game)
     arcade.run()
 
 
