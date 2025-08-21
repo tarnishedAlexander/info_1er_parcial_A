@@ -124,29 +124,6 @@ class App(arcade.View):
                 logger.debug(f"Start Point: {self.start_point}")
             else:
                 logger.debug("Cannot launch bird - wait for current bird to stop")
-        
-        elif button == arcade.MOUSE_BUTTON_RIGHT:
-            # Right-click triggers ability of the current active bird (if in flight)
-            if self.current_bird and hasattr(self.current_bird, 'is_in_flight') and self.current_bird.is_in_flight:
-                # Handle special bird abilities
-                if isinstance(self.current_bird, YellowBird):
-                    success = self.current_bird.boost()
-                    if success:
-                        logger.debug("Yellow bird boosted!")
-                    else:
-                        logger.debug("Yellow bird boost failed (already used or not in flight)")
-                elif isinstance(self.current_bird, BlueBird):
-                    new_birds = self.current_bird.split(self.sprites)
-                    if new_birds:
-                        for new_bird in new_birds:
-                            self.birds.append(new_bird)
-                        logger.debug(f"Blue bird split into {len(new_birds)} birds!")
-                    else:
-                        logger.debug("Blue bird split failed (already used or not in flight)")
-                else:
-                    logger.debug("Red bird has no special ability")
-            else:
-                logger.debug("No active bird in flight to trigger ability")
                                 
     def on_mouse_drag(self, x: int, y: int, dx: int, dy: int, buttons: int, modifiers: int):
         if buttons == arcade.MOUSE_BUTTON_LEFT and self.draw_line and self.can_launch:
@@ -177,13 +154,41 @@ class App(arcade.View):
             logger.debug("Bird launched, waiting for it to stop...")
 
     def on_key_press(self, symbol, modifiers):
-        """Allow switching between bird types"""
+        """Allow switching between bird types and activating abilities"""
         if symbol == arcade.key.KEY_1:
             self.current_bird_type = "red"
         elif symbol == arcade.key.KEY_2:
             self.current_bird_type = "yellow"
         elif symbol == arcade.key.KEY_3:
             self.current_bird_type = "blue"
+        elif symbol == arcade.key.SPACE:
+            # Spacebar triggers ability of the current active bird (if in flight)
+            if self.current_bird:
+                # Handle special bird abilities
+                if isinstance(self.current_bird, YellowBird):
+                    if hasattr(self.current_bird, 'is_in_flight') and self.current_bird.is_in_flight:
+                        success = self.current_bird.boost()
+                        if success:
+                            logger.debug("Yellow bird boosted!")
+                        else:
+                            logger.debug("Yellow bird boost failed (already used or not in flight)")
+                    else:
+                        logger.debug("Yellow bird not in flight")
+                elif isinstance(self.current_bird, BlueBird):
+                    if hasattr(self.current_bird, 'is_in_flight') and self.current_bird.is_in_flight:
+                        new_birds = self.current_bird.split(self.sprites)
+                        if new_birds:
+                            for new_bird in new_birds:
+                                self.birds.append(new_bird)
+                            logger.debug(f"Blue bird split into {len(new_birds)} birds!")
+                        else:
+                            logger.debug("Blue bird split failed (already used or not in flight)")
+                    else:
+                        logger.debug("Blue bird not in flight")
+                else:
+                    logger.debug("Red bird has no special ability")
+            else:
+                logger.debug("No active bird to trigger ability")
 
     def on_draw(self):
         self.clear()

@@ -93,7 +93,7 @@ class YellowBird(Bird):
         x: float,
         y: float,
         space: pymunk.Space,
-        boost_multiplier: float = 1.3,
+        boost_multiplier: float = 4.0,
         **kwargs
     ):
         super().__init__(image_path, impulse_vector, x, y, space, **kwargs)
