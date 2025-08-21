@@ -5,10 +5,6 @@ from game_logic import ImpulseVector
 
 
 class Bird(arcade.Sprite):
-    """
-    Bird class. This represents an angry bird. All the physics is handled by Pymunk,
-    the init method only set some initial properties
-    """
     def __init__(
         self,
         image_path: str,
@@ -23,18 +19,16 @@ class Bird(arcade.Sprite):
         elasticity: float = 0.8,
         friction: float = 1,
         collision_layer: int = 0,
+        life_time: float = 5.0,
     ):
         super().__init__(image_path, 1)
-        # body
         moment = pymunk.moment_for_circle(mass, 0, radius)
         body = pymunk.Body(mass, moment)
         body.position = (x, y)
 
         impulse = min(max_impulse, impulse_vector.impulse) * power_multiplier
         impulse_pymunk = impulse * pymunk.Vec2d(1, 0)
-        # apply impulse
         body.apply_impulse_at_local_point(impulse_pymunk.rotated(impulse_vector.angle))
-        # shape
         shape = pymunk.Circle(body, radius)
         shape.elasticity = elasticity
         shape.friction = friction
@@ -45,13 +39,19 @@ class Bird(arcade.Sprite):
         self.body = body
         self.shape = shape
 
+        self.life_time = life_time
+        self.time_alive = 0.0
+
     def update(self, delta_time):
-        """
-        Update the position of the bird sprite based on the physics body position
-        """
         self.center_x = self.shape.body.position.x
         self.center_y = self.shape.body.position.y
         self.radians = self.shape.body.angle
+
+        self.time_alive += delta_time
+        if self.time_alive >= self.life_time:
+            if self.shape.space is not None:
+                self.shape.space.remove(self.shape, self.body)
+            self.remove_from_sprite_lists()
 
 
 class Pig(arcade.Sprite):
@@ -199,9 +199,6 @@ class BlueBird(Bird):
         return []
 
 class PassiveObject(arcade.Sprite):
-    """
-    Passive object that can interact with other objects.
-    """
     def __init__(
         self,
         image_path: str,
