@@ -4,6 +4,7 @@ import arcade
 import pymunk
 
 from game_object import Bird, BlueBird, Column, Pig, YellowBird
+from catapult import Catapult
 from game_logic import get_impulse_vector, Point2D, get_distance
 
 logging.basicConfig(level=logging.DEBUG)
@@ -22,11 +23,12 @@ GRAVITY = -900
 class App(arcade.View):
     def __init__(self):
         super().__init__()
+        self._window = None  # Se asignará en setup
         self.background = arcade.load_texture("assets/img/background3.png")
         # crear espacio de pymunk
         self.space = pymunk.Space()
         self.space.gravity = (0, GRAVITY)
-        self.current_bird_type = "red"  
+        self.current_bird_type = "red"
 
         # agregar piso
         floor_body = pymunk.Body(body_type=pymunk.Body.STATIC)
@@ -44,11 +46,26 @@ class App(arcade.View):
         self.end_point = Point2D()
         self.distance = 0
         self.draw_line = False
-        
+
+
         # Turn-based system variables
         self.current_bird = None  # Track the currently active bird
         self.can_launch = True    # Whether a new bird can be launched
         self.bird_stopped_timer = 0  # Timer to ensure bird has fully stopped
+
+        # Catapult system
+        self.catapult_mode = False
+        self.catapult = Catapult(200, 100, self.space)
+        self.catapult_bird_ready = False
+
+
+    def set_window(self, window):
+        self._window = window
+
+    def toggle_fullscreen(self):
+        if self._window:
+            self._window.set_fullscreen(not self._window.fullscreen)
+            logger.debug(f"Fullscreen set to {self._window.fullscreen}")
 
         # agregar un collision handler
         self.handler = self.space.add_default_collision_handler()
@@ -79,9 +96,11 @@ class App(arcade.View):
         self.world.append(pig1)
 
     def on_update(self, delta_time: float):
-        self.space.step(1 / 60.0)  # actualiza la simulacion de las fisicas
+        self.space.step(1 / 60.0)
         self.update_collisions()
         self.sprites.update(delta_time)
+        if self.catapult_mode:
+            self.catapult.update(delta_time)
         self.check_bird_status(delta_time)
 
     def check_bird_status(self, delta_time: float):
@@ -91,7 +110,7 @@ class App(arcade.View):
             if self.current_bird in self.birds:
                 velocity = self.current_bird.body.velocity
                 speed = velocity.length
-                
+
                 # If bird is moving very slowly, start the timer
                 if speed < 5:  # Threshold for "stopped"
                     self.bird_stopped_timer += delta_time
@@ -116,51 +135,82 @@ class App(arcade.View):
 
     def on_mouse_press(self, x, y, button, modifiers):
         if button == arcade.MOUSE_BUTTON_LEFT:
-            # Only allow aiming if no bird is currently active
-            if self.can_launch:
-                self.start_point = Point2D(x, y)
-                self.end_point = Point2D(x, y)
-                self.draw_line = True
-                logger.debug(f"Start Point: {self.start_point}")
+            if self.catapult_mode:
+                if self.can_launch and not self.catapult_bird_ready:
+                    # Cargar pájaro en la punta izquierda
+                    if self.current_bird_type == "yellow":
+                        bird = YellowBird("assets/img/yellow.png", get_impulse_vector(Point2D(), Point2D()), self.catapult.x, self.catapult.y, self.space)
+                    elif self.current_bird_type == "blue":
+                        bird = BlueBird("assets/img/blue.png", get_impulse_vector(Point2D(), Point2D()), self.catapult.x, self.catapult.y, self.space)
+                    else:
+                        bird = Bird("assets/img/red-bird3.png", get_impulse_vector(Point2D(), Point2D()), self.catapult.x, self.catapult.y, self.space)
+                    self.catapult.load_bird(bird)
+                    self.sprites.append(bird)
+                    self.birds.append(bird)
+                    self.current_bird = bird
+                    self.catapult_bird_ready = True
+                    self.can_launch = False
+                    logger.debug("Bird loaded in catapult. Ahora dibuja la piedra contrapeso.")
+                elif self.catapult_bird_ready and not self.catapult.counterweight_ready:
+                    # Iniciar trazo del pincel para el contrapeso
+                    self.catapult.start_counterweight_draw(x, y)
             else:
-                logger.debug("Cannot launch bird - wait for current bird to stop")
-                                
+                if self.can_launch:
+                    self.start_point = Point2D(x, y)
+                    self.end_point = Point2D(x, y)
+                    self.draw_line = True
+                    logger.debug(f"Start Point: {self.start_point}")
+                else:
+                    logger.debug("Cannot launch bird - wait for current bird to stop")
+
     def on_mouse_drag(self, x: int, y: int, dx: int, dy: int, buttons: int, modifiers: int):
-        if buttons == arcade.MOUSE_BUTTON_LEFT and self.draw_line and self.can_launch:
+        if self.catapult_mode and self.catapult_bird_ready and self.catapult.counterweight_drawing:
+            self.catapult.update_counterweight_draw(x, y)
+        elif not self.catapult_mode and buttons == arcade.MOUSE_BUTTON_LEFT and self.draw_line and self.can_launch:
             self.end_point = Point2D(x, y)
             logger.debug(f"Dragging to: {self.end_point}")
 
     def on_mouse_release(self, x: int, y: int, button: int, modifiers: int):
-        if button == arcade.MOUSE_BUTTON_LEFT and self.draw_line and self.can_launch:
-            logger.debug(f"Releasing from: {self.end_point}")
-            self.draw_line = False
-            impulse_vector = get_impulse_vector(self.start_point, self.end_point)
-            
-            # Create different bird types based on current selection
-            if self.current_bird_type == "yellow":
-                bird = YellowBird("assets/img/yellow.png", impulse_vector, x, y, self.space)
-            elif self.current_bird_type == "blue":
-                bird = BlueBird("assets/img/blue.png", impulse_vector, x, y, self.space)
-            else:  # red bird (default)
-                bird = Bird("assets/img/red-bird3.png", impulse_vector, x, y, self.space)
-            
-            self.sprites.append(bird)
-            self.birds.append(bird)
-            
-            # Set as current bird and disable launching until it stops
-            self.current_bird = bird
-            self.can_launch = False
-            self.bird_stopped_timer = 0
-            logger.debug("Bird launched, waiting for it to stop...")
+        if self.catapult_mode and self.catapult_bird_ready and self.catapult.counterweight_drawing:
+            self.catapult.update_counterweight_draw(x, y)
+            self.catapult.finish_counterweight_draw()
+            logger.debug("Contrapeso pintado y soltado. Espera la animación de lanzamiento.")
+        elif not self.catapult_mode:
+            if button == arcade.MOUSE_BUTTON_LEFT and self.draw_line and self.can_launch:
+                logger.debug(f"Releasing from: {self.end_point}")
+                self.draw_line = False
+                impulse_vector = get_impulse_vector(self.start_point, self.end_point)
+                if self.current_bird_type == "yellow":
+                    bird = YellowBird("assets/img/yellow.png", impulse_vector, x, y, self.space)
+                elif self.current_bird_type == "blue":
+                    bird = BlueBird("assets/img/blue.png", impulse_vector, x, y, self.space)
+                else:
+                    bird = Bird("assets/img/red-bird3.png", impulse_vector, x, y, self.space)
+                self.sprites.append(bird)
+                self.birds.append(bird)
+                self.current_bird = bird
+                self.can_launch = False
+                self.bird_stopped_timer = 0
+                logger.debug("Bird launched, waiting for it to stop...")
 
     def on_key_press(self, symbol, modifiers):
         """Allow switching between bird types and activating abilities"""
-        if symbol == arcade.key.KEY_1:
+        # Shift+Enter para fullscreen
+        if symbol == arcade.key.ENTER and modifiers & arcade.key.MOD_SHIFT:
+            self.toggle_fullscreen()
+        elif symbol == arcade.key.KEY_1:
             self.current_bird_type = "red"
         elif symbol == arcade.key.KEY_2:
             self.current_bird_type = "yellow"
         elif symbol == arcade.key.KEY_3:
             self.current_bird_type = "blue"
+        elif symbol == arcade.key.C:
+            # Alternar entre resortera y catapulta
+            self.catapult_mode = not self.catapult_mode
+            logger.debug(f"Catapult mode: {self.catapult_mode}")
+            # Reset catapult state if switching
+            self.catapult_bird_ready = False
+            self.can_launch = True
         elif symbol == arcade.key.SPACE:
             # Spacebar triggers ability of the current active bird (if in flight)
             if self.current_bird:
@@ -195,24 +245,37 @@ class App(arcade.View):
         # arcade.draw_lrwh_rectangle_textured(0, 0, WIDTH, HEIGHT, self.background)
         arcade.draw_texture_rect(self.background, arcade.LRBT(0, WIDTH, 0, HEIGHT))
         self.sprites.draw()
-        
+
+        # Dibuja la catapulta si está en modo catapulta
+        if self.catapult_mode:
+            self.catapult.draw()
+
         # Only draw aiming line if we can launch a bird
-        if self.draw_line and self.can_launch:
+        if self.draw_line and self.can_launch and not self.catapult_mode:
             arcade.draw_line(self.start_point.x, self.start_point.y, self.end_point.x, self.end_point.y,
                              arcade.color.BLACK, 3)
-        
+
         # Draw status text
-        if not self.can_launch:
-            arcade.draw_text("Waiting for bird to stop...", 10, HEIGHT - 30, 
-                           arcade.color.WHITE, 20)
+        if self.catapult_mode:
+            if not self.catapult_bird_ready:
+                arcade.draw_text("Catapulta: Haz click para cargar pájaro.", 10, HEIGHT - 30, arcade.color.WHITE, 20)
+            elif self.catapult_bird_ready and not self.catapult.counterweight_ready:
+                arcade.draw_text("Dibuja la piedra contrapeso (arrastra y suelta).", 10, HEIGHT - 30, arcade.color.WHITE, 20)
+            elif self.catapult_bird_ready and self.catapult.counterweight_ready:
+                arcade.draw_text("¡Brazo lanzando! Espera el disparo...", 10, HEIGHT - 30, arcade.color.WHITE, 20)
+            else:
+                arcade.draw_text("Catapulta lista para siguiente disparo.", 10, HEIGHT - 30, arcade.color.WHITE, 20)
         else:
-            arcade.draw_text(f"Ready to launch {self.current_bird_type} bird", 10, HEIGHT - 30, 
-                           arcade.color.WHITE, 20)
+            if not self.can_launch:
+                arcade.draw_text("Waiting for bird to stop...", 10, HEIGHT - 30, arcade.color.WHITE, 20)
+            else:
+                arcade.draw_text(f"Ready to launch {self.current_bird_type} bird", 10, HEIGHT - 30, arcade.color.WHITE, 20)
 
 
 def main():
     window = arcade.Window(WIDTH, HEIGHT, TITLE)
     game = App()
+    game.set_window(window)
     window.show_view(game)
     arcade.run()
 
