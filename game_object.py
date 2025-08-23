@@ -102,13 +102,13 @@ class YellowBird(Bird):
         self.boost_multiplier = boost_multiplier
         self.has_boosted = False  # Prevent multiple boosts
         self.is_in_flight = False
-    
+
     def update(self, delta_time):
         super().update(delta_time)
         # Check if bird is in flight (has significant velocity)
         velocity = self.body.velocity
         self.is_in_flight = velocity.length > 10  # Threshold for being "in flight"
-    
+
     def boost(self):
         """Apply boost to the bird if it hasn't been used yet"""
         if not self.has_boosted and self.is_in_flight:
@@ -141,27 +141,27 @@ class BlueBird(Bird):
         self.scale = 40 / max(self.width, self.height)
         self.has_split = False
         self.is_in_flight = False
-    
+
     def update(self, delta_time):
         super().update(delta_time)
         velocity = self.body.velocity
         self.is_in_flight = velocity.length > 10
-    
+
     def split(self, sprite_list):
         """Split into 3 birds with 30-degree separation"""
         if not self.has_split and self.is_in_flight:
             current_velocity = self.body.velocity
             current_position = self.body.position
-            
+
             if current_velocity.length > 0:
                 # Get current angle
                 current_angle = math.atan2(current_velocity.y, current_velocity.x)
-                
+
                 # Create 3 birds with -30, 0, +30 degree offsets
-                angles = [current_angle + math.radians(30), 
-                         current_angle, 
+                angles = [current_angle + math.radians(30),
+                         current_angle,
                          current_angle - math.radians(30)]
-                
+
                 new_birds = []
                 for angle in angles:
                     # Create new impulse vector with same magnitude but different direction
@@ -169,7 +169,7 @@ class BlueBird(Bird):
                         current_velocity.length * math.cos(angle),
                         current_velocity.length * math.sin(angle)
                     )
-                    
+
                     # Create new blue bird
                     space = self.body.space
                     if space is None:
@@ -188,13 +188,13 @@ class BlueBird(Bird):
                     new_bird.has_split = True  # Prevent further splitting
                     new_birds.append(new_bird)
                     sprite_list.append(new_bird)
-                
+
                 # Remove original bird
                 self.remove_from_sprite_lists()
                 if self.shape.space is not None:
                     self.shape.space.remove(self.shape, self.body)
                 self.has_split = True
-                
+
                 return new_birds
         return []
 
