@@ -4,7 +4,7 @@ Configuración de niveles para el juego Angry Birds
 from dataclasses import dataclass
 from typing import List, Tuple
 
-# Constantes del juego (importadas desde main)
+# Constantes del juego
 WIDTH = 1800
 HEIGHT = 800
 

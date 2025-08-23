@@ -1,4 +1,3 @@
-# catapult.py — Rampa estática (garabato) + caída de pájaro por click
 import arcade
 import pymunk
 import math
@@ -25,20 +24,19 @@ class Catapult:
         self.counterweight_shapes = []
         self.counterweight_drawing = False
         self.counterweight_ready = False
-        self.counterweight_timer = 0.0   # por si quieres limpiar luego (opcional)
+        self.counterweight_timer = 0.0   # para limpiar
 
-        # Compatibilidad con tu API previa (no hay brazo real ya)
+        # Parámetros físicos 
         self.arm_body = None
         self.arm_shape = None
         self.pivot_joint = None
         self.support_shape = None
         self.bird_joint = None
         self.counterweight_joint = None
-
-        # (Opcional) base visual para que no se vea vacío
+        
+        # Longitud del brazo
         self._setup_dummy_visual()
 
-    # -------------------- Visual "dummy" opcional --------------------
     def _setup_dummy_visual(self):
         base_y = self.y
         altura = 40
@@ -54,22 +52,16 @@ class Catapult:
         self.space.add(support_body, support_shape)
         self.support_shape = support_shape
 
-    # -------------------- Pájaro --------------------
     def load_bird(self, bird):
         """
         En lugar de montarlo a un brazo, lo dejamos preparado (STATIC)
         hasta que el usuario haga click para soltarlo.
         """
         self.bird_loaded = bird
-        # Lo dejamos estático y sin velocidad; tú decides dónde mostrarlo (opcional).
         bird.body.velocity = (0, 0)
         bird.body.angular_velocity = 0
-        bird.body.body_type = pymunk.Body.STATIC  # ¡no cae todavía!
+        bird.body.body_type = pymunk.Body.STATIC  
 
-        # (Opcional) podrías posicionarlo cerca de la rampa o donde prefieras:
-        # bird.body.position = (self.x + 80, self.y + 180)
-
-        # Sin junta
         if self.bird_joint:
             try:
                 self.space.remove(self.bird_joint)
@@ -85,14 +77,12 @@ class Catapult:
         if not self.bird_loaded:
             return False
         body = self.bird_loaded.body
-        # Pasamos a dinámico y colocamos arriba del click
         body.body_type = pymunk.Body.DYNAMIC
         body.position = (x, y + height)
         body.velocity = (0, 0)
         body.angular_velocity = 0
         return True
 
-    # -------------------- Garabato / Rampa --------------------
     def start_counterweight_draw(self, x, y):
         self.counterweight_drawing = True
         self.counterweight_points = [(x, y)]
@@ -107,24 +97,21 @@ class Catapult:
         """
         self.counterweight_drawing = False
 
-        # Quita la rampa anterior si había
         self._remove_ramp()
 
         if len(self.counterweight_points) < 2:
             self.counterweight_ready = False
             return
 
-        # Cuerpo estático para que NO le afecte la gravedad
         body = pymunk.Body(body_type=pymunk.Body.STATIC)
-        # No hace falta position/angle en STATIC; vamos a crear segmentos en coords del mundo
 
         shapes = []
         for i in range(len(self.counterweight_points) - 1):
             ax, ay = self.counterweight_points[i]
             bx, by = self.counterweight_points[i + 1]
             seg = pymunk.Segment(body, (ax, ay), (bx, by), 14)
-            seg.friction = 1.2      # que deslice poco (rampa “pegajosa”)
-            seg.elasticity = 0.1    # poca elasticidad para no “rebotar” raro
+            seg.friction = 1.2      # para deslizar poco
+            seg.elasticity = 0.1    # poca elasticidad para no “rebotar”
             shapes.append(seg)
 
         self.space.add(body, *shapes)
@@ -148,35 +135,23 @@ class Catapult:
                 pass
         self.counterweight_body = None
 
-    # -------------------- Update / Draw --------------------
-    def update(self, delta_time=1/60):
-        # (Opcional) limpieza automática de la rampa tras X segundos:
-        # if self.counterweight_ready:
-        #     self.counterweight_timer += delta_time
-        #     if self.counterweight_timer >= 30.0:
-        #         self._remove_ramp()
-        #         self.counterweight_ready = False
-        pass
-
     def draw(self):
-        # base visual (triangulito)
+        # base visual
         if self.support_shape:
             s = self.support_shape.get_vertices()
             arcade.draw_triangle_filled(s[0].x, s[0].y, s[1].x, s[1].y, s[2].x, s[2].y, arcade.color.DARK_BROWN)
 
-        # vista previa durante el dibujo
         if self.counterweight_drawing and len(self.counterweight_points) > 1:
             arcade.draw_line_strip(self.counterweight_points, arcade.color.GRAY, 8)
 
         # rampa estática
         if self.counterweight_shapes:
             verts = []
-            # ojo: como son segmentos en coords mundo, los puntos ya son absolutos
             for seg in self.counterweight_shapes:
                 a = seg.a
                 b = seg.b
                 verts.append((a.x, a.y))
             if verts:
-                # Conectar en pantalla. Para que se vea bonito, rehacemos la polilínea
+                # Conectar en pantalla
                 pts = [seg.a for seg in self.counterweight_shapes] + [self.counterweight_shapes[-1].b]
                 arcade.draw_line_strip([(p.x, p.y) for p in pts], arcade.color.DARK_SLATE_GRAY, 16)
