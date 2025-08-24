@@ -476,10 +476,23 @@ class GameView(arcade.View):
         if self.catapult_mode:
             self.catapult.draw()
 
-        # dibujar linea de punteria para resortera
+        # dibujar trayectoria segmentada (1/4 de parábola) para resortera
         if self.draw_line and self.can_launch and not self.catapult_mode:
-            arcade.draw_line(self.start_point.x, self.start_point.y, self.end_point.x, self.end_point.y,
-                             arcade.color.BLACK, 3)
+            # Calcular vector de impulso (ángulo y fuerza)
+            from game_logic import get_impulse_vector
+            impulse_vector = get_impulse_vector(self.start_point, self.end_point)
+            angle = impulse_vector.angle
+            velocity = impulse_vector.impulse * 4  # Ajusta el factor para que la parábola sea visible
+            g = abs(GRAVITY)
+            x0, y0 = self.start_point.x, self.start_point.y
+            num_points = 20
+            t_total = (2 * velocity * math.sin(angle)) / g if g != 0 else 1
+            t_max = t_total * 0.25  # Solo 1/4 del trayecto
+            for i in range(num_points):
+                t = t_max * i / (num_points - 1)
+                x = x0 + velocity * math.cos(angle) * t
+                y = y0 + velocity * math.sin(angle) * t - 0.5 * g * t * t
+                arcade.draw_circle_filled(x, y, 6, arcade.color.AERO_BLUE)
 
 
 
