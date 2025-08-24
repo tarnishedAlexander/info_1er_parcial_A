@@ -16,7 +16,7 @@ class LevelData:
     description: str = ""
     max_birds: int = 3
 
-def create_basic_level(pig_count: int, start_x: float = None) -> LevelData:
+def create_basic_level(pig_count: int, start_x: float) -> LevelData:
     """nivel básico con el número especificado de cerdos"""
     if start_x is None:
         start_x = WIDTH // 2

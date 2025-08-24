@@ -103,7 +103,7 @@ class YellowBird(Bird):
 
     def update(self, delta_time):
         super().update(delta_time)
-        # Check if bird is in flight (has significant velocity)
+        # Check if bird is in flight
         velocity = self.body.velocity
         self.is_in_flight = velocity.length > 10  # Threshold for being "in flight"
 

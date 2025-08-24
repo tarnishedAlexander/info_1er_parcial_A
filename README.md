@@ -1,4 +1,4 @@
-# Angry Birds - Catapult Edition
+# Angry Birds - Garabato Edition
 
 Un juego de Angry Birds mejorado que combina el clásico sistema de resortera con una innovadora catapulta dibujable.
 
@@ -11,7 +11,11 @@ Un juego de Angry Birds mejorado que combina el clásico sistema de resortera co
 - **R**: Reiniciar nivel actual
 - **ESC**: Salir del juego (mantener 5 segundos)
 
-## Modo Catapulta (Innovación Principal)
+## Modo garabato
+
+Lastimosamente no funciona como deberia.
+
+## Modo Catapulta
 
 1. **Primer Click**: Cargar pájaro en la catapulta
 2. **Arrastrar Mouse**: Dibujar la rampa personalizada

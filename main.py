@@ -241,8 +241,6 @@ class GameView(arcade.View):
 
         # agregar un collision handler
         self.handler = self.space.add_default_collision_handler()
-        self.handler.post_solve = self.collision_handler
-
 
     def bird_hits_pig(self, arbiter, space, data):
         # Eliminar el cerdo cuando lo toca un pájaro
@@ -355,10 +353,18 @@ class GameView(arcade.View):
                 self.bird_stopped_timer = 0
 
     def on_mouse_press(self, x, y, button, modifiers):
+        # Revisar botón de recarga primero
         if button == arcade.MOUSE_BUTTON_LEFT:
+            bx, by = self.reload_button_pos
+            s = self.reload_button_size // 2
+            if bx - s < x < bx + s and by - s < y < by + s:
+                self.score = 0
+                self.restart_level()
+                return
+
+            # Modo catapulta
             if self.catapult_mode:
                 if self.can_launch and not self.catapult_bird_ready:
-                    # Cargar pajaro en catapulta
                     bird = self.create_bird(self.current_bird_type, get_impulse_vector(Point2D(), Point2D()), x, y)
                     self.catapult.load_bird(bird)
                     self.sprites.append(bird)
@@ -366,24 +372,24 @@ class GameView(arcade.View):
                     self.current_bird = bird
                     self.catapult_bird_ready = True
                     self.can_launch = True
-
                 elif self.catapult_bird_ready and not self.catapult.counterweight_ready:
-                    # empezar a dibujar rampa
                     self.catapult.start_counterweight_draw(x, y)
-
                 elif self.catapult_bird_ready and self.catapult.counterweight_ready:
-                    # soltar pajaro
                     ok = self.catapult.drop_bird_at(x, y, height=400)
                     if ok:
                         self.can_launch = False
                         self.bird_stopped_timer = 0
+            # Modo resortera
             else:
-                # modo resortera
                 if self.can_launch:
-                    self.start_point = Point2D(x, y)
-                    self.end_point = Point2D(x, y)
-                    self.draw_line = True
-
+                    dx = x - self.sling_anchor[0]
+                    dy = y - self.sling_anchor[1]
+                    if (dx*dx + dy*dy) ** 0.5 <= self.sling_radius:
+                        self.start_point = Point2D(self.sling_anchor[0]+100, self.sling_anchor[1]+50)
+                        self.end_point = Point2D(x, y)
+                        self.draw_line = True
+                    else:
+                        self.draw_line = False
 
     def on_mouse_drag(self, x: int, y: int, dx: int, dy: int, buttons: int, modifiers: int):
         if self.catapult_mode and self.catapult_bird_ready and self.catapult.counterweight_drawing:
@@ -460,13 +466,26 @@ class GameView(arcade.View):
         # Dibujar fondo
         arcade.draw_texture_rect(self.background, arcade.LRBT(0, WIDTH, 0, HEIGHT))
 
+        # Dibujar resortera
         arcade.draw_texture_rect(
             self.sling_texture,
             arcade.LRBT(
-            self.sling_left+100,
-            self.sling_left + self.sling_width + 100,
-            self.sling_bottom,
-            self.sling_bottom + self.sling_height,
+                self.sling_left + 100,
+                self.sling_left + self.sling_width + 100,
+                self.sling_bottom,
+                self.sling_bottom + self.sling_height,
+            ),
+        )
+
+        # Dibujar botón de recarga
+        bx, by = self.reload_button_pos
+        arcade.draw_texture_rect(
+            self.reload_texture,
+            arcade.LRBT(
+                bx - self.reload_button_size // 2,
+                bx + self.reload_button_size // 2,
+                by - self.reload_button_size // 2,
+                by + self.reload_button_size // 2,
             ),
         )
 
@@ -501,46 +520,6 @@ class GameView(arcade.View):
         # Indicación sutil para reiniciar
         arcade.draw_text("Presiona 'R' para reiniciar nivel", WIDTH - 260, 18, arcade.color.LIGHT_GRAY, 16)
 
-
-    def on_mouse_press(self, x, y, button, modifiers):
-        # Botón de recarga
-        bx, by = self.reload_button_pos
-        s = self.reload_button_size // 2
-        if bx - s < x < bx + s and by - s < y < by + s:
-            self.score = 0
-            self.restart_level()
-            return
-        # ...existing code...
-        if button == arcade.MOUSE_BUTTON_LEFT:
-            if self.catapult_mode:
-                if self.can_launch and not self.catapult_bird_ready:
-                    # Cargar pajaro en catapulta
-                    bird = self.create_bird(self.current_bird_type, get_impulse_vector(Point2D(), Point2D()), x, y)
-                    self.catapult.load_bird(bird)
-                    self.sprites.append(bird)
-                    self.birds.append(bird)
-                    self.current_bird = bird
-                    self.catapult_bird_ready = True
-                    self.can_launch = True
-                elif self.catapult_bird_ready and not self.catapult.counterweight_ready:
-                    # empezar a dibujar rampa
-                    self.catapult.start_counterweight_draw(x, y)
-                elif self.catapult_bird_ready and self.catapult.counterweight_ready:
-                    # soltar pajaro
-                    ok = self.catapult.drop_bird_at(x, y, height=400)
-                    if ok:
-                        self.can_launch = False
-                        self.bird_stopped_timer = 0
-            else:
-                if self.can_launch:
-                    dx = x - self.sling_anchor[0]
-                    dy = y - self.sling_anchor[1]
-                    if (dx*dx + dy*dy) ** 0.5 <= self.sling_radius:
-                        self.start_point = Point2D(self.sling_anchor[0]+100, self.sling_anchor[1]+50)
-                        self.end_point = Point2D(x, y)
-                        self.draw_line = True
-                    else:
-                        self.draw_line = False
 
     def draw_ui(self):
         # contador de salida

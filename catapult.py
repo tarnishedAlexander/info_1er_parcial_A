@@ -8,7 +8,7 @@ class Catapult:
         # Método vacío para compatibilidad con GameView
         pass
     """
-    - El usuario dibuja un garabato (línea gruesa).
+    - El usuario dibuja un garabato.
     - Ese garabato se convierte en una rampa ESTÁTICA (no le afecta la gravedad).
     - Se prepara un pájaro (queda STATIC), y cuando el usuario hace click en algún lugar
       después de dibujar la rampa, el pájaro se suelta desde arriba de ese punto y cae

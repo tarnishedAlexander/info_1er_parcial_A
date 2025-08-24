@@ -41,7 +41,7 @@ def get_impulse_vector(start_point: Point2D, end_point: Point2D) -> ImpulseVecto
     ### SU IMPLEMENTACION AQUI ###
     ### ---------------------- ###
     angle = get_angle_radians(start_point, end_point)
-    # Reverse the direction by adding π (180 degrees) for slingshot effect
+    # Reverse the direction by adding $$\pi$$ for slingshot effect
     opposite_angle = angle + math.pi
     impulse = get_distance(start_point, end_point)
     return ImpulseVector(opposite_angle, impulse)
