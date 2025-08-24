@@ -189,6 +189,20 @@ class GameView(arcade.View):
         self.catapult = Catapult(200, 100, self.space)
         self.catapult_bird_ready = False
 
+        self.sling_texture = arcade.load_texture("assets/img/sling-3.png")
+        self.sling_width, self.sling_height = 90, 120
+        self.floor_y = 15              # coincide con tu segmento del piso
+        self.sling_left = 30           # margen desde el borde izquierdo
+        self.sling_bottom = self.floor_y + 2  # 2 px por encima del piso
+
+        # Punto fijo de lanzamiento (centro del PNG)
+        self.sling_anchor = (
+            self.sling_left + self.sling_width // 2,
+            self.sling_bottom + self.sling_height // 2,
+        )
+        self.sling_radius = 45  # radio para “agarrar” la resortera
+
+
     def load_level(self, idx):
         self.sprites = arcade.SpriteList()
         self.birds = arcade.SpriteList()
@@ -445,6 +459,17 @@ class GameView(arcade.View):
         self.clear()
         # Dibujar fondo
         arcade.draw_texture_rect(self.background, arcade.LRBT(0, WIDTH, 0, HEIGHT))
+
+        arcade.draw_texture_rect(
+            self.sling_texture,
+            arcade.LRBT(
+            self.sling_left+100,
+            self.sling_left + self.sling_width + 100,
+            self.sling_bottom,
+            self.sling_bottom + self.sling_height,
+            ),
+        )
+
         self.sprites.draw()
 
         # Dibujar catapulta si está activa
@@ -494,11 +519,15 @@ class GameView(arcade.View):
                         self.can_launch = False
                         self.bird_stopped_timer = 0
             else:
-                # modo resortera
                 if self.can_launch:
-                    self.start_point = Point2D(x, y)
-                    self.end_point = Point2D(x, y)
-                    self.draw_line = True
+                    dx = x - self.sling_anchor[0]
+                    dy = y - self.sling_anchor[1]
+                    if (dx*dx + dy*dy) ** 0.5 <= self.sling_radius:
+                        self.start_point = Point2D(self.sling_anchor[0]+100, self.sling_anchor[1]+50)
+                        self.end_point = Point2D(x, y)
+                        self.draw_line = True
+                    else:
+                        self.draw_line = False
 
     def draw_ui(self):
         # contador de salida
