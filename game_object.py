@@ -32,13 +32,10 @@ class Bird(arcade.Sprite):
         shape = pymunk.Circle(body, radius)
         shape.elasticity = elasticity
         shape.friction = friction
-        shape.collision_type = collision_layer
-
+        shape.collision_type = 1  # collision_type para pájaro
         space.add(body, shape)
-
         self.body = body
         self.shape = shape
-
         self.life_time = life_time
         self.time_alive = 0.0
 
@@ -69,10 +66,11 @@ class Pig(arcade.Sprite):
         moment = pymunk.moment_for_circle(mass, 0, self.width / 2 - 3)
         body = pymunk.Body(mass, moment)
         body.position = (x, y)
-        shape = pymunk.Circle(body, self.width / 2 - 3)
+        self.radius = self.width / 2 - 3
+        shape = pymunk.Circle(body, self.radius)
         shape.elasticity = elasticity
         shape.friction = friction
-        shape.collision_type = collision_layer
+        shape.collision_type = 2  # collision_type para cerdo
         space.add(body, shape)
         self.body = body
         self.shape = shape

@@ -3,6 +3,10 @@ import pymunk
 import math
 
 class Catapult:
+
+    def update(self, delta_time):
+        # Método vacío para compatibilidad con GameView
+        pass
     """
     - El usuario dibuja un garabato (línea gruesa).
     - Ese garabato se convierte en una rampa ESTÁTICA (no le afecta la gravedad).
@@ -26,14 +30,14 @@ class Catapult:
         self.counterweight_ready = False
         self.counterweight_timer = 0.0   # para limpiar
 
-        # Parámetros físicos 
+        # Parámetros físicos
         self.arm_body = None
         self.arm_shape = None
         self.pivot_joint = None
         self.support_shape = None
         self.bird_joint = None
         self.counterweight_joint = None
-        
+
         # Longitud del brazo
         self._setup_dummy_visual()
 
@@ -60,7 +64,7 @@ class Catapult:
         self.bird_loaded = bird
         bird.body.velocity = (0, 0)
         bird.body.angular_velocity = 0
-        bird.body.body_type = pymunk.Body.STATIC  
+        bird.body.body_type = pymunk.Body.STATIC
 
         if self.bird_joint:
             try:
